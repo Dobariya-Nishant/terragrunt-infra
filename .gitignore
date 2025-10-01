@@ -1,0 +1,33 @@
+# === Terraform ===
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform CLI configuration file
+.terraformrc
+terraform.rc
+
+# Local .terraform directory
+.terraform/
+
+# === Terragrunt ===
+.terragrunt-cache/
+*.hcl*.backup
+
+# === IDEs and tooling (optional) ===
+.vscode/
+.idea/
+*.swp
+*.bak
+*.tmp
+
+# === OS-specific (optional) ===
+.DS_Store
+Thumbs.db
