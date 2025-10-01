@@ -117,6 +117,7 @@ resource "aws_security_group" "this" {
 
   description = "${each.key} Security Group"
   name = "${each.key}-sg-${var.environment}"
+  vpc_id      = var.vpc_id
   
   dynamic "ingress" {
     for_each = each.value.enable_ssh_from_current_ip ? [1] : []

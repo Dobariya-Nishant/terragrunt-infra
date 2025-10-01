@@ -17,6 +17,15 @@ variable "environment" {
   type        = string
 }
 
+# ==========
+# Networking
+# ==========
+
+variable "vpc_id" {
+  description = "The VPC ID where resources like EC2, security groups, etc. will be deployed."
+  type        = string
+}
+
 # =========================
 # Auto Scaling Groups (ASG)
 # =========================
@@ -28,7 +37,7 @@ variable "asg" {
     min_size                   = number
     max_size                   = number
     subnet_ids                 = list(string)
-    ebs_size                   = optional(number, 10)
+    ebs_size                   = optional(number, 30)
     ebs_type                   = optional(string, "gp2")
     enable_ssh_from_current_ip = optional(bool, false)
     enable_public_ssh          = optional(bool, false)

@@ -6,13 +6,13 @@ output "id" {
   value = aws_ecs_cluster.this.id
 }
 
-output "asg" {
+output "asg_cp" {
   description = "ASG details by name"
   value = {
-    for k, asg in aws_autoscaling_group.this :
+    for k, cp in aws_ecs_capacity_provider.this :
     k => {
-      name         = asg.name
-      arn          = asg.arn
+      name         = cp.name
+      arn          = cp.arn
     }
   }
 }
