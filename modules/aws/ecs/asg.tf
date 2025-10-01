@@ -24,6 +24,12 @@ resource "aws_autoscaling_group" "this" {
     "GroupTotalInstances",
   ]
 
+  tag {
+    key                 = "AmazonECSManaged"
+    value               = "true"
+    propagate_at_launch = true
+  }
+
   launch_template {
     id      = aws_launch_template.this[each.key].id
     version = aws_launch_template.this[each.key].latest_version

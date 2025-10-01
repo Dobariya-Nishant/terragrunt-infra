@@ -9,4 +9,5 @@ terraform {
 inputs = {
   project_name       = "activatree"
   domain_name        = "dev.activatree.com"
+  environment = "prod"
 }

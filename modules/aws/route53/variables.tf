@@ -12,4 +12,9 @@ variable "domain_name" {
   type        = string
 }
 
+variable "environment" {
+  description = "Deployment environment identifier (e.g., dev, staging, prod). Used for environment-specific tagging and naming."
+  type        = string
+}
+
 

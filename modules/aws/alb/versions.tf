@@ -9,12 +9,3 @@ terraform {
   }
   backend "s3" {}
 }
-
-provider "aws" {
-  default_tags {
-    tags = {
-      Project     = var.project_name
-      Environment = var.environment
-    }
-  }
-}
