@@ -70,13 +70,13 @@ resource "aws_ecs_task_definition" "this" {
 
   requires_compatibilities = each.value.capacity_provider_name == null ? ["FARGATE"] : []
 
-  execution_role_arn = aws_iam_role.ecs_task_execution_role.arn
+  execution_role_arn = aws_iam_role.ecs_task_execution_role[each.key].arn
   task_role_arn      = try(each.value.task.task_role_arn, null)
 
   container_definitions = jsonencode([
     {
       name         = each.value.task.name
-      image        = each.value.task.image_uri
+      image        = aws_ecr_repository.this[each.key].repository_url
       essential    = each.value.task.essential
       environment  = try(each.value.task.environment, [])
       portMappings = try(each.value.task.portMappings, [])
@@ -108,7 +108,7 @@ resource "aws_appautoscaling_target" "ecs_service" {
 resource "aws_appautoscaling_policy" "cpu_scaling" {
   for_each = aws_ecs_service.this
 
-  name               = "${each.key}-cpu-scaling"
+  name               = "${each.value.name}-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service[each.key].resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service[each.key].scalable_dimension
@@ -128,7 +128,7 @@ resource "aws_appautoscaling_policy" "cpu_scaling" {
 resource "aws_appautoscaling_policy" "memory_scaling" {
   for_each = aws_ecs_service.this
 
-  name               = "${aws_ecs_service.this.name}-memory-scaling"
+  name               = "${each.value.name}-memory-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_service[each.key].resource_id
   scalable_dimension = aws_appautoscaling_target.ecs_service[each.key].scalable_dimension
@@ -151,8 +151,9 @@ resource "aws_appautoscaling_policy" "memory_scaling" {
 resource "aws_security_group" "this" {
   for_each = var.services
 
-  name        = "${each.key}-sg-${var.environment}"
+  name        = "${each.value.name}-sv-sg-${var.environment}"
   description = "tasks Security group"
+  vpc_id      = each.value.vpc_id
 
   dynamic "ingress" {
     for_each = each.value.load_balancer_config != null ? [each.value.load_balancer_config] : []
@@ -196,7 +197,7 @@ resource "aws_security_group" "this" {
   }
 
   tags = {
-    Name = "${each.key}-sg-${var.environment}"
+    Name = "${each.value.name}-sv-sg-${var.environment}"
   }
 }
 
@@ -227,11 +228,11 @@ data "aws_iam_policy" "ecs_task_execution_role_policy" {
 resource "aws_iam_role" "ecs_task_execution_role" {
   for_each = var.services
 
-  name        = "${each.key}-task-execution-role-${each.value.environment}"
+  name        = "${each.value.name}-task-execution-role-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_execution_role.json
 
   tags = {
-    Name = "${each.key}-task-execution-role-${each.value.environment}"
+    Name = "${each.value.name}-task-execution-role-${var.environment}"
   }
 }
 

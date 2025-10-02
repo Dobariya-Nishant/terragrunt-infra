@@ -44,15 +44,15 @@ resource "aws_codedeploy_deployment_group" "ecs_deploy_group" {
   load_balancer_info {
     target_group_pair_info {
       prod_traffic_route {
-        listener_arns = [each.value.listener_arn]
+        listener_arns = [each.value.load_balancer_config.listener_arn]
       }
 
       target_group {
-        name = each.value.blue_target_group_name
+        name = each.value.load_balancer_config.blue_target_group_name
       }
 
       target_group {
-        name = each.value.green_target_group_name
+        name = each.value.load_balancer_config.green_target_group_name
       }
     }
   }
@@ -88,6 +88,8 @@ data "aws_iam_policy" "ecs_code_deploy_role_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "this" {
-  role       = aws_iam_role.this.name
+  for_each = var.services
+
+  role       = aws_iam_role.this[each.key].name
   policy_arn =  data.aws_iam_policy.ecs_code_deploy_role_policy.arn
 }

@@ -3,7 +3,7 @@ include {
 }
 
 terraform {
-  source = "../../../modules/aws/ecs"
+  source = "../../../modules/aws/db"
 }
 
 dependency "vpc" {
@@ -25,14 +25,7 @@ inputs = {
   name         = local.env_vars.locals.project_name
   project_name = local.env_vars.locals.project_name
   environment  = local.env_vars.locals.environment
-  vpc_id       = dependency.vpc.outputs.vpc_id
 
-  asg = {
-    client = {
-      instance_type = "t2.micro"
-      min_size      = 1
-      max_size      = 2
-      subnet_ids    = dependency.vpc.outputs.private_subent_ids
-    }
-  }
+  vpc_id     = dependency.vpc.outputs.vpc_id
+  subnet_ids = dependency.vpc.outputs.private_subent_ids
 }

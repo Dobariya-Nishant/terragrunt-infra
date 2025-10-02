@@ -24,10 +24,8 @@ resource "aws_autoscaling_group" "this" {
     "GroupTotalInstances",
   ]
 
-  tag {
-    key                 = "AmazonECSManaged"
-    value               = "true"
-    propagate_at_launch = true
+  lifecycle {
+    ignore_changes = [tag,desired_capacity]
   }
 
   launch_template {
@@ -121,8 +119,8 @@ data "http" "my_ip" {
 resource "aws_security_group" "this" {
   for_each = var.asg
 
-  description = "${each.key} Security Group"
-  name = "${each.key}-sg-${var.environment}"
+  description = "${each.key} Auto Scalling Group Security Group"
+  name = "${each.key}-asg-sg-${var.environment}"
   vpc_id      = var.vpc_id
   
   dynamic "ingress" {
@@ -156,7 +154,7 @@ resource "aws_security_group" "this" {
   }
 
   tags = {
-    Name = "${each.key}-sg-${var.environment}"
+    Name = "${each.key}-asg-sg-${var.environment}"
   }
 }
 

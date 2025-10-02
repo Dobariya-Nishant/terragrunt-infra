@@ -42,6 +42,7 @@ variable "services" {
   type = map(object({
     name                   = string
     desired_count          = number
+    vpc_id                 = string
     subnet_ids             = list(string)
     capacity_provider_name = optional(string, null)
     enable_public_http     = optional(bool, false)
