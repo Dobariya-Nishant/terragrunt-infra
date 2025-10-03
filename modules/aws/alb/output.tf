@@ -13,42 +13,24 @@ output "https_listener_arn" {
   value       = aws_lb_listener.https.arn
 }
 
-output "blue_client_tg_arn" {
-  description = "ARN of the blue (active) target group for client traffic."
-  value       = aws_lb_target_group.blue_client.arn
+output "blue_tg" {
+  description = "the blue (active) target groups"
+  value = {
+    for k, tg in aws_lb_target_group.blue :
+    k => {
+      name = tg.name
+      arn  = tg.arn
+    }
+  }
 }
 
-output "blue_client_tg_name" {
-  description = "ARN of the blue (active) target group for client traffic."
-  value       = aws_lb_target_group.blue_client.name
-}
-
-output "green_client_tg_arn" {
-  description = "ARN of the green (test) target group for client traffic."
-  value       = aws_lb_target_group.green_client.arn
-}
-
-output "green_client_tg_name" {
-  description = "ARN of the blue (active) target group for client traffic."
-  value       = aws_lb_target_group.green_client.name
-}
-
-output "blue_api_tg_arn" {
-  description = "ARN of the blue (active) target group for API traffic."
-  value       = aws_lb_target_group.blue_api.arn
-}
-
-output "blue_api_tg_name" {
-  description = "ARN of the blue (active) target group for client traffic."
-  value       = aws_lb_target_group.blue_api.name
-}
-
-output "green_api_tg_arn" {
-  description = "ARN of the green (test) target group for API traffic."
-  value       = aws_lb_target_group.green_api.arn
-}
-
-output "green_api_tg_name" {
-  description = "ARN of the blue (active) target group for client traffic."
-  value       = aws_lb_target_group.green_api.name
+output "green_tg" {
+  description = "the green (test) target groups"
+  value = {
+    for k, tg in aws_lb_target_group.green :
+    k => {
+      name = tg.name
+      arn  = tg.arn
+    }
+  }
 }

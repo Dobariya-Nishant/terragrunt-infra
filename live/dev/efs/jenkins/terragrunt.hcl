@@ -3,11 +3,11 @@ include {
 }
 
 terraform {
-  source = "../../../modules/aws/ecs"
+  source = "../../../../modules/aws/efs"
 }
 
 dependency "vpc" {
-  config_path = "../vpc"
+  config_path = "../../vpc"
 
   # Optional: helpful for plan if VPC is not applied yet
   mock_outputs = {
@@ -22,17 +22,10 @@ locals {
 }
 
 inputs = {
-  name         = local.env_vars.locals.project_name
+  name         = "${local.env_vars.locals.project_name}-jenkins"
   project_name = local.env_vars.locals.project_name
   environment  = local.env_vars.locals.environment
-  vpc_id       = dependency.vpc.outputs.vpc_id
 
-  asg = {
-    jenkins = {
-      instance_type = "t3.micro"
-      min_size      = 1
-      max_size      = 2
-      subnet_ids    = dependency.vpc.outputs.private_subent_ids
-    }
-  }
+  vpc_id     = dependency.vpc.outputs.vpc_id
+  subnet_ids = dependency.vpc.outputs.private_subent_ids
 }

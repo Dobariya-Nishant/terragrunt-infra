@@ -5,7 +5,7 @@ resource "aws_autoscaling_group" "this" {
   for_each = var.asg
 
   name                      = "${each.key}-asg-${var.environment}"
-  desired_capacity          = lookup(each.value, "desired_capacity", each.value.min_size)
+  desired_capacity          = each.value.min_size
   max_size                  = each.value.max_size
   min_size                  = each.value.min_size
   health_check_grace_period = 300
@@ -25,7 +25,7 @@ resource "aws_autoscaling_group" "this" {
   ]
 
   lifecycle {
-    ignore_changes = [tag,desired_capacity]
+    ignore_changes = [tag, desired_capacity]
   }
 
   launch_template {
@@ -50,7 +50,7 @@ resource "aws_placement_group" "this" {
 resource "aws_launch_template" "this" {
   for_each = var.asg
 
-  name   = "${each.key}-lt-${var.environment}"
+  name          = "${each.key}-lt-${var.environment}"
   instance_type = each.value.instance_type
   image_id      = data.aws_ami.al2023_ecs_kernel6plus.image_id
   key_name      = aws_key_pair.this[each.key].key_name
@@ -92,14 +92,14 @@ resource "tls_private_key" "this" {
 }
 
 resource "aws_key_pair" "this" {
-  for_each   = var.asg
+  for_each = var.asg
 
   key_name   = "${each.key}-key-${var.environment}"
   public_key = tls_private_key.this[each.key].public_key_openssh
 }
 
 resource "local_file" "this" {
-  for_each        = var.asg
+  for_each = var.asg
 
   filename        = "${path.root}/keys/${aws_key_pair.this[each.key].key_name}.pem"
   content         = tls_private_key.this[each.key].private_key_openssh
@@ -120,28 +120,28 @@ resource "aws_security_group" "this" {
   for_each = var.asg
 
   description = "${each.key} Auto Scalling Group Security Group"
-  name = "${each.key}-asg-sg-${var.environment}"
+  name        = "${each.key}-asg-sg-${var.environment}"
   vpc_id      = var.vpc_id
-  
+
   dynamic "ingress" {
     for_each = each.value.enable_ssh_from_current_ip ? [1] : []
     content {
-      description       = "Allow SSH"
-      from_port         = 22
-      to_port           = 22
-      protocol          = "tcp"
-      cidr_blocks       = [data.http.my_ip.response_body]
+      description = "Allow SSH"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = [data.http.my_ip.response_body]
     }
   }
 
   dynamic "ingress" {
     for_each = each.value.enable_public_ssh ? [1] : []
     content {
-      description       = "Allow SSH"
-      from_port         = 22
-      to_port           = 22
-      protocol          = "tcp"
-      cidr_blocks       = ["0.0.0.0/0"]
+      description = "Allow SSH"
+      from_port   = 22
+      to_port     = 22
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
     }
   }
 
@@ -177,7 +177,7 @@ data "aws_iam_policy" "ecs_ec2_role_policy" {
 }
 
 resource "aws_iam_role" "this" {
-  for_each           = var.asg
+  for_each = var.asg
 
   name               = "${each.key}-ecs-instance-role-${var.environment}"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role.json
@@ -187,17 +187,17 @@ resource "aws_iam_role" "this" {
 }
 
 resource "aws_iam_role_policy_attachment" "this" {
-  for_each  = var.asg
+  for_each = var.asg
 
-  role      = aws_iam_role.this[each.key].name
+  role       = aws_iam_role.this[each.key].name
   policy_arn = data.aws_iam_policy.ecs_ec2_role_policy.arn
 }
 
 resource "aws_iam_instance_profile" "this" {
   for_each = var.asg
 
-  name     = "${each.key}-ecs-instance-profile-${var.environment}"
-  role     = aws_iam_role.this[each.key].name
+  name = "${each.key}-ecs-instance-profile-${var.environment}"
+  role = aws_iam_role.this[each.key].name
   tags = {
     Name = "${each.key}-ecs-instance-profile-${var.environment}"
   }

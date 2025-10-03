@@ -4,10 +4,10 @@
 
 resource "aws_lb" "this" {
   name               = local.name
-  internal           = false                        
-  load_balancer_type = "application"                
-  security_groups    = [aws_security_group.this.id] 
-  subnets            = var.subnet_ids               
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.this.id]
+  subnets            = var.subnet_ids
 
   enable_cross_zone_load_balancing = true
 
@@ -20,99 +20,55 @@ resource "aws_lb" "this" {
 # 🎯 Target Groups (for ALB Listeners)
 # ====================================
 
-resource "aws_lb_target_group" "blue_client" {
-  name                          = "blue-client-${local.name}" 
-  port                          = 80
-  protocol                      = "HTTP" 
+resource "aws_lb_target_group" "blue" {
+  for_each = var.target_groups
+
+  name                          = "blue-${each.value.name}-tg-${var.environment}"
+  port                          = each.value.port
+  protocol                      = each.value.protocol
   vpc_id                        = var.vpc_id
-  target_type                   = "ip" 
+  target_type                   = each.value.target_type
   load_balancing_algorithm_type = "round_robin"
 
   health_check {
     enabled             = true
-    interval            = 30  
+    interval            = 30
     path                = "/"
     port                = "traffic-port"
-    healthy_threshold   = 3     
-    unhealthy_threshold = 2     
-    timeout             = 5     
-    matcher             = "200" 
-  }
-
-  tags = {
-    Name = "blue-client-${local.name}"
-  }
-}
-
-resource "aws_lb_target_group" "green_client" {
-  name                          = "green-client-${local.name}"
-  port                          = 80
-  protocol                      = "HTTP" 
-  vpc_id                        = var.vpc_id
-  target_type                   = "ip" 
-  load_balancing_algorithm_type = "round_robin"
-
-  health_check {
-    enabled             = true
-    interval            = 30  
-    path                = "/" 
-    port                = "traffic-port"
-    healthy_threshold   = 3     
-    unhealthy_threshold = 2     
-    timeout             = 5     
-    matcher             = "200" 
-  }
-
-  tags = {
-    Name = "green-client-${local.name}"
-  }
-}
-
-resource "aws_lb_target_group" "blue_api" {
-  name                          = "blue-api-${local.name}"
-  port                          = 80
-  protocol                      = "HTTP" 
-  vpc_id                        = var.vpc_id
-  target_type                   = "ip"
-  load_balancing_algorithm_type = "round_robin"
-
-  health_check {
-    enabled             = true
-    interval            = 30  
-    path                = "/" 
-    port                = "traffic-port"
-    healthy_threshold   = 3     
-    unhealthy_threshold = 2     
-    timeout             = 5     
-    matcher             = "200" 
-  }
-
-  tags = {
-    Name = "blue-api-${local.name}"
-  }
-}
-
-resource "aws_lb_target_group" "green_api" {
-  name                          = "green-api-${local.name}"
-  port                          = 80
-  protocol                      = "HTTP" 
-  vpc_id                        = var.vpc_id
-  target_type                   = "ip" 
-  load_balancing_algorithm_type = "round_robin"
-
-  health_check {
-    enabled             = true
-    interval            = 30  
-    path                = "/"
-    port                = "traffic-port"
-    healthy_threshold   = 3     
-    unhealthy_threshold = 2     
-    timeout             = 5     
+    healthy_threshold   = 3
+    unhealthy_threshold = 2
+    timeout             = 5
     matcher             = "200"
   }
 
   tags = {
-    Name = "green-api-${local.name}"
+    Name = "blue-${each.value.name}-tg-${var.environment}"
+  }
+}
+
+resource "aws_lb_target_group" "green" {
+  for_each = var.target_groups
+
+  name                          = "green-${each.value.name}-tg-${var.environment}"
+  port                          = each.value.port
+  protocol                      = each.value.protocol
+  vpc_id                        = var.vpc_id
+  target_type                   = each.value.target_type
+  load_balancing_algorithm_type = "round_robin"
+
+  health_check {
+    enabled             = true
+    interval            = 30
+    path                = "/"
+    port                = "traffic-port"
+    healthy_threshold   = 3
+    unhealthy_threshold = 2
+    timeout             = 5
+    matcher             = "200"
+  }
+
+  tags = {
+    Name = "green-${each.value.name}-tg-${var.environment}"
   }
 }
 
@@ -122,15 +78,15 @@ resource "aws_lb_target_group" "green_api" {
 
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.this.arn
-  port              = 443     
-  protocol          = "HTTPS" 
+  port              = 443
+  protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
 
   certificate_arn = aws_acm_certificate.this.arn
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.blue_client.arn
+    target_group_arn = aws_lb_target_group.blue[var.listener.target_group_key].arn
   }
 
   depends_on = [
@@ -138,7 +94,7 @@ resource "aws_lb_listener" "https" {
   ]
 
   tags = {
-    Name = "https-${local.name}"
+    Name = "${var.listener.name}-https-${var.environment}"
   }
 }
 
@@ -159,7 +115,7 @@ resource "aws_lb_listener" "http" {
   }
 
   tags = {
-    Name = "http-${local.name}"
+    Name = "${var.listener.name}-http-${var.environment}"
   }
 }
 
@@ -167,23 +123,24 @@ resource "aws_lb_listener" "http" {
 # 📜 ALB Listener Rules (Path-based Routing)
 # ==========================================
 
-resource "aws_lb_listener_rule" "api_https" {
+resource "aws_lb_listener_rule" "this" {
+  for_each = var.listener.rules
+
   listener_arn = aws_lb_listener.https.arn
-  priority     = 1
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.blue_api.arn
+    target_group_arn = aws_lb_target_group.blue[each.value.target_group_key].arn
   }
 
   condition {
     path_pattern {
-      values = ["/api"]
+      values = each.value.patterns
     }
   }
 
   tags = {
-    Name = "api-https-${local.name}"
+    Description = each.value.description
   }
 }
 
@@ -196,27 +153,27 @@ resource "aws_security_group" "this" {
   vpc_id = var.vpc_id
 
   ingress {
-    description       = "Allow HTTPS"
-    from_port         = 443
-    to_port           = 443
-    protocol          = "tcp"
-    cidr_blocks       = ["0.0.0.0/0"]
+    description = "Allow HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
-    description       = "Allow HTTP"
-    from_port         = 80
-    to_port           = 80
-    protocol          = "tcp"
-    cidr_blocks       = ["0.0.0.0/0"]
+    description = "Allow HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    description       = "Allow all outbound traffic"
-    from_port         = 0
-    to_port           = 0
-    protocol          = "-1"
-    cidr_blocks       = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {

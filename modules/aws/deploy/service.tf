@@ -55,9 +55,16 @@ resource "aws_ecs_service" "this" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "this" {
+  for_each     = var.services
+
+  name              = "/ecs/${each.value.task.name}"
+  retention_in_days = 7
+}
+
 # ====================
 # ECS Task Definitions
-# ====================
+# ====================  
 
 # ECS Task Definitions for all tasks provided via `var.tasks`
 resource "aws_ecs_task_definition" "this" {
@@ -72,18 +79,41 @@ resource "aws_ecs_task_definition" "this" {
 
   execution_role_arn = aws_iam_role.ecs_task_execution_role[each.key].arn
   task_role_arn      = try(each.value.task.task_role_arn, null)
-
+# sudo mount -t nfs4 -o nfsvers=4.1 fs-0a43e7af5aa7431b9.efs.us-east-1.amazonaws.com:/ /mnt
   container_definitions = jsonencode([
     {
       name         = each.value.task.name
-      image        = aws_ecr_repository.this[each.key].repository_url
+      image        = each.value.task.image_uri
       essential    = each.value.task.essential
       environment  = try(each.value.task.environment, [])
       portMappings = try(each.value.task.portMappings, [])
+      mountPoints  = try(each.value.task.mountPoints, [])
       command      = each.value.task.command
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.this[each.key].name
+          awslogs-region        = "us-east-1"
+          awslogs-stream-prefix = var.name
+        }
+      }
     }
   ])
 
+  
+
+  dynamic "volume" {
+    for_each = each.value.volumes
+    content {
+      name = "jenkins-data"
+      efs_volume_configuration {
+        file_system_id =     volume.value.efs_id
+        root_directory      = volume.value.root_directory
+        transit_encryption =  "ENABLED"
+      }
+    }
+  }
+  
   tags = {
     Name = "${each.value.task.name}-td-${var.environment}"
   }
@@ -163,6 +193,17 @@ resource "aws_security_group" "this" {
       to_port         = ingress.value.container_port
       protocol        = "tcp"
       security_groups = [ingress.value.sg_id]
+    }
+  }
+
+  dynamic "ingress" {
+    for_each = each.value.sg_rules
+    content {
+      description     = ingress.value.description
+      from_port       = ingress.value.from_port
+      to_port         = ingress.value.to_port
+      protocol        = ingress.value.protocol
+      cidr_blocks     = ingress.value.cidr_blocks
     }
   }
 

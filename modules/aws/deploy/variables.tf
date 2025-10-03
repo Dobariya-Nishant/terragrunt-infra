@@ -47,31 +47,51 @@ variable "services" {
     capacity_provider_name = optional(string, null)
     enable_public_http     = optional(bool, false)
     enable_public_https    = optional(bool, false)
+    
     load_balancer_config = optional(object({
-      listener_arn = string
-      blue_target_group_name = string
+      listener_arn            = string
+      blue_target_group_name  = string
       green_target_group_name = string
-      blue_target_group_arn = string
-      green_target_group_arn = string
-      container_port   = number
-      sg_id            = string
+      blue_target_group_arn   = string
+      green_target_group_arn  = string
+      container_port          = number
+      sg_id                   = string
     }))
 
+    sg_rules = optional(list(object({
+      description     = string
+      from_port       = number
+      to_port         = number
+      protocol        = optional(string, "tcp")
+      cidr_blocks     = list(string)
+    })))
+
+    volumes = optional(list(object({
+      name = string
+      efs_id     = string
+      root_directory     = string
+    })), [])
+
     task = object({
-      name          = string
-      cpu           = string
-      memory        = string
-      image_uri     = string
-      essential     = bool
-      command       = optional(list(string))
-      environment   = optional(list(object({ 
-        name = string
-        value = string 
+      name      = string
+      cpu       = string
+      memory    = string
+      image_uri = string
+      essential = bool
+      command   = optional(list(string))
+      environment = optional(list(object({
+        name  = string
+        value = string
       })), [])
-      portMappings  = optional(list(object({
+      portMappings = optional(list(object({
         containerPort = number
         hostPort      = optional(number)
         protocol      = optional(string)
+      })), [])
+      mountPoints = optional(list(object({
+        sourceVolume  = string
+        containerPath = string
+        readOnly      = bool
       })), [])
       task_role_arn = optional(string)
     })

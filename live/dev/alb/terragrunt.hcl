@@ -41,4 +41,32 @@ inputs = {
   subnet_ids = dependency.vpc.outputs.public_subent_ids
 
   hostedzone_id = dependency.route53.outputs.hostedzone_id
+
+  target_groups = {
+    web = {
+      name        = "web"
+      port        = 80
+      protocol    = "HTTP"
+      target_type = "ip"
+    }
+    jenkins = {
+      name        = "jenkins"
+      port        = 8080
+      protocol    = "HTTP"
+      target_type = "ip"
+    }
+  }
+
+  listener = {
+    name             = local.env_vars.locals.project_name
+    target_group_key = "web"
+    rules = {
+      jenkins_rule = {
+        description      = "Jenkins path routing"
+        target_group_key = "jenkins"
+        patterns         = ["/jenkins*"]
+      }
+    }
+  }
+
 }

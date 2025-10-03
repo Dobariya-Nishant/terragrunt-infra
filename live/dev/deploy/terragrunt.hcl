@@ -22,17 +22,31 @@ dependency "alb" {
 
   # Optional: helpful for plan if VPC is not applied yet
   mock_outputs = {
-    id                   = "mock-alb-id"
-    sg_id                = "mock-alb-sg-id"
-    https_listener_arn   = "mock-alb-listener-arn"
-    blue_client_tg_arn   = "mock-blue-client-tg-arn"
-    blue_client_tg_name  = "mock-blue-client-tg-name"
-    green_client_tg_arn  = "mock-green-client-tg-arn"
-    green_client_tg_name = "mock-green-client-tg-name"
-    blue_api_tg_arn      = "mock-blue-api-tg-arn"
-    blue_api_tg_name     = "mock-blue-api-tg-name"
-    green_api_tg_arn     = "mock-green-api-tg-arn"
-    green_api_tg_name    = "mock-green-api-tg-name"
+    id                 = "mock-alb-id"
+    sg_id              = "mock-alb-sg-id"
+    https_listener_arn = "mock-alb-listener-arn"
+    blue_tg = {
+      jenkins = {
+        name = "mock-tg-name"
+        arn  = "mock-tg-arn"
+      }
+    }
+    green_tg = {
+      jenkins = {
+        name = "mock-tg-name"
+        arn  = "mock-tg-arn"
+      }
+    }
+  }
+}
+
+dependency "jenkins_efs" {
+  config_path = "../efs/jenkins"
+
+  # Optional: helpful for plan if VPC is not applied yet
+  mock_outputs = {
+    id   = "mock-efs-id"
+    name = "mock-efs-name"
   }
 }
 
@@ -66,36 +80,59 @@ inputs = {
 
   services = {
 
-    client = {
-      name                   = "client"
+    jenkins = {
+      name                   = "jenkins"
       desired_count          = 1
       vpc_id                 = dependency.vpc.outputs.vpc_id
       subnet_ids             = dependency.vpc.outputs.private_subent_ids
-      capacity_provider_name = dependency.ecs.outputs.asg_cp["client"].name
-      enable_public_http     = true
-      enable_public_https    = false
+      # capacity_provider_name = dependency.ecs.outputs.asg_cp["jenkins"].name
 
       load_balancer_config = {
         sg_id                   = dependency.alb.outputs.sg_id
         listener_arn            = dependency.alb.outputs.https_listener_arn
-        blue_target_group_name  = dependency.alb.outputs.blue_client_tg_name
-        green_target_group_name = dependency.alb.outputs.green_client_tg_name
-        blue_target_group_arn   = dependency.alb.outputs.blue_client_tg_arn
-        green_target_group_arn  = dependency.alb.outputs.green_client_tg_arn
-        container_port          = 80
+        blue_target_group_name  = dependency.alb.outputs.blue_tg["jenkins"].name
+        green_target_group_name = dependency.alb.outputs.green_tg["jenkins"].name
+        blue_target_group_arn   = dependency.alb.outputs.blue_tg["jenkins"].arn
+        green_target_group_arn  = dependency.alb.outputs.green_tg["jenkins"].arn
+        container_port          = 8080
       }
 
+      volumes = [
+        {
+          name          = "jenkins-data"
+          efs_id  = dependency.jenkins_efs.outputs.id
+          root_directory = "/"
+        }
+      ]
+
+      sg_rules = [
+        {
+          description     = "allow port for jenkins agents access"
+          from_port       = 50000
+          to_port         = 50000
+          protocol        = "tcp"
+          cidr_blocks     = ["10.0.0.0/16"]
+        }
+      ]
+
       task = {
-        name      = "nginx-client"
+        name      = "jenkins"
         cpu       = 256
         memory    = 512
-        image_uri = "nginx:latest"
+        image_uri = "jenkins/jenkins:lts-alpine"
         essential = true
         portMappings = [
           {
-            containerPort = 80
-            hostPort      = 80
+            containerPort = 8080
+            hostPort      = 8080
             protocol      = "tcp"
+          }
+        ]
+        mountPoints = [
+          {
+            sourceVolume  = "jenkins-data"
+            containerPath = "/var/jenkins_home"
+            readOnly      = false
           }
         ]
       }

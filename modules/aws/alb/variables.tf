@@ -31,16 +31,47 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
+# ======================
+# 🌐 Hosted Zone for DNS
+# ======================
+
 variable "hostedzone_id" {
-  description = "hostedzone id to register alb with domain name"
+  description = "Route53 Hosted Zone ID for your domain"
   type        = string
 }
 
-# =========================
-# ⚖️ Load Balancer Settings
-# =========================
-
 variable "domain_name" {
-  description = "domain name"
+  description = "Domain name for ALB (example.com)"
   type        = string
+}
+
+# =============
+# Target Groups
+# =============
+
+variable "target_groups" {
+  description = "Map of target group definitions for blue/green"
+  type = map(object({
+    name        = string # name suffix for TG
+    port        = number # port to listen on
+    protocol    = string # HTTP or HTTPS
+    target_type = string # instance or ip
+  }))
+}
+
+# =========
+# Listeners
+# =========
+
+variable "listener" {
+  description = "Listener settings for ALB"
+  type = object({
+    name             = string
+    target_group_key = string # default target group key to forward HTTPS traffic
+    rules = map(object({
+      description      = string
+      target_group_key = string
+      patterns         = list(string)
+    }))
+  })
 }

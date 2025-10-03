@@ -91,5 +91,5 @@ resource "aws_iam_role_policy_attachment" "this" {
   for_each = var.services
 
   role       = aws_iam_role.this[each.key].name
-  policy_arn =  data.aws_iam_policy.ecs_code_deploy_role_policy.arn
+  policy_arn = data.aws_iam_policy.ecs_code_deploy_role_policy.arn
 }

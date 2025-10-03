@@ -2,13 +2,13 @@
 
 # DocumentDB Cluster
 resource "aws_docdb_cluster" "this" {
-  cluster_identifier      = "${var.name}-db-cluster-${var.environment}"
-  engine                  = "docdb"
-  master_username         = "poweruser"
-  master_password         = "SuperSecret123!"
-  db_subnet_group_name    = aws_docdb_subnet_group.this.name
-  vpc_security_group_ids  = [aws_security_group.this.id]
-  skip_final_snapshot     = var.skip_final_snapshot  # dev/test only
+  cluster_identifier     = "${var.name}-db-cluster-${var.environment}"
+  engine                 = "docdb"
+  master_username        = "poweruser"
+  master_password        = "SuperSecret123!"
+  db_subnet_group_name   = aws_docdb_subnet_group.this.name
+  vpc_security_group_ids = [aws_security_group.this.id]
+  skip_final_snapshot    = var.skip_final_snapshot # dev/test only
 
   tags = {
     Name = "${var.name}-db-cluster-${var.environment}"
@@ -30,7 +30,7 @@ resource "aws_docdb_cluster_instance" "this" {
   count              = 1
   identifier         = "${var.name}-db-${var.environment}"
   cluster_identifier = aws_docdb_cluster.this.id
-  instance_class     = "db.t3.medium"  # lowest-cost instance
+  instance_class     = "db.t3.medium" # lowest-cost instance
 
   tags = {
     Name = "${var.name}-db-${var.environment}"
@@ -45,11 +45,11 @@ resource "aws_security_group" "this" {
   dynamic "ingress" {
     for_each = var.allowed_ip != null ? [1] : []
     content {
-      description       = "Allow HTTPS"
-      from_port         = 27017
-      to_port           = 27017
-      protocol          = "tcp"
-      cidr_blocks       = ["${var.allowed_ip}/32"]
+      description = "Allow HTTPS"
+      from_port   = 27017
+      to_port     = 27017
+      protocol    = "tcp"
+      cidr_blocks = ["${var.allowed_ip}/32"]
     }
   }
 

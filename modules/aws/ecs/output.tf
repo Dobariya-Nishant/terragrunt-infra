@@ -11,8 +11,8 @@ output "asg_cp" {
   value = {
     for k, cp in aws_ecs_capacity_provider.this :
     k => {
-      name         = cp.name
-      arn          = cp.arn
+      name = cp.name
+      arn  = cp.arn
     }
   }
 }
