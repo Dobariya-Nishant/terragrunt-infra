@@ -26,3 +26,7 @@ variable "subnet_ids" {
   description = "List of subnets to create mount targets in"
   type        = list(string)
 }
+
+variable "access_points" {
+  type        = map(string)
+}

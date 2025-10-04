@@ -100,16 +100,16 @@ resource "aws_ecs_task_definition" "this" {
     }
   ])
 
-  
-
   dynamic "volume" {
     for_each = each.value.volumes
     content {
       name = "jenkins-data"
       efs_volume_configuration {
         file_system_id =     volume.value.efs_id
-        root_directory      = volume.value.root_directory
         transit_encryption =  "ENABLED"
+        authorization_config {
+          access_point_id = volume.value.access_point_id
+        }
       }
     }
   }
@@ -275,6 +275,33 @@ resource "aws_iam_role" "ecs_task_execution_role" {
   tags = {
     Name = "${each.value.name}-task-execution-role-${var.environment}"
   }
+}
+
+resource "aws_iam_policy" "efs_access" {
+  for_each     = var.services
+
+  name        = "ECS_EFS_Access"
+  description = "Allow ECS task to mount/write to EFS"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:DescribeFileSystems"
+        ],
+        Resource = "arn:aws:elasticfilesystem:us-east-1:<account-id>:file-system/fs-0a43e7af5aa7431b9"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "efs_policy_attach" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.efs_access.arn
 }
 
 # Attach managed execution policy to role

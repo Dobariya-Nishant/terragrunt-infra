@@ -35,6 +35,11 @@ variable "subnet_ids" {
 # 🌐 Hosted Zone for DNS
 # ======================
 
+variable "acm_certificate_arn" {
+  description = "Acm certificate for HTTPS"
+  type        = string
+}
+
 variable "hostedzone_id" {
   description = "Route53 Hosted Zone ID for your domain"
   type        = string
@@ -56,6 +61,7 @@ variable "target_groups" {
     port        = number # port to listen on
     protocol    = string # HTTP or HTTPS
     target_type = string # instance or ip
+    health_check_path = optional(string,"/")
   }))
 }
 
@@ -71,7 +77,8 @@ variable "listener" {
     rules = map(object({
       description      = string
       target_group_key = string
-      patterns         = list(string)
+      patterns         = optional(list(string)) 
+      hosts            = optional(list(string))
     }))
   })
 }

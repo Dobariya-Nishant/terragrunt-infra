@@ -28,4 +28,7 @@ inputs = {
 
   vpc_id     = dependency.vpc.outputs.vpc_id
   subnet_ids = dependency.vpc.outputs.private_subent_ids
+  access_points = {
+    jenkins = "/jenkins"
+  }
 }

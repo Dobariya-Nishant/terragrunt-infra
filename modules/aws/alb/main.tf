@@ -33,7 +33,7 @@ resource "aws_lb_target_group" "blue" {
   health_check {
     enabled             = true
     interval            = 30
-    path                = "/"
+    path                = each.value.health_check_path
     port                = "traffic-port"
     healthy_threshold   = 3
     unhealthy_threshold = 2
@@ -59,9 +59,9 @@ resource "aws_lb_target_group" "green" {
   health_check {
     enabled             = true
     interval            = 30
-    path                = "/"
+    path                = each.value.health_check_path
     port                = "traffic-port"
-    healthy_threshold   = 3
+    healthy_threshold   = 6
     unhealthy_threshold = 2
     timeout             = 5
     matcher             = "200"
@@ -82,16 +82,12 @@ resource "aws_lb_listener" "https" {
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
 
-  certificate_arn = aws_acm_certificate.this.arn
+  certificate_arn = var.acm_certificate_arn
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.blue[var.listener.target_group_key].arn
   }
-
-  depends_on = [
-    aws_acm_certificate_validation.this
-  ]
 
   tags = {
     Name = "${var.listener.name}-https-${var.environment}"
@@ -134,10 +130,21 @@ resource "aws_lb_listener_rule" "this" {
   }
 
   condition {
-    path_pattern {
-      values = each.value.patterns
+    dynamic "path_pattern" {
+      for_each = try(each.value.patterns, null) != null ? [1] : []
+      content {
+        values = each.value.patterns
+      }
+    }
+
+    dynamic "host_header" {
+      for_each = try(each.value.hosts, null) != null ? [1] : []
+      content {
+        values = each.value.hosts
+      }
     }
   }
+
 
   tags = {
     Description = each.value.description
@@ -179,45 +186,6 @@ resource "aws_security_group" "this" {
   tags = {
     Name = local.name
   }
-}
-
-# ===================================
-# 2. ACM Certificate (DNS validation)
-# ===================================
-resource "aws_acm_certificate" "this" {
-  domain_name       = local.domain_name
-  validation_method = "DNS"
-
-  subject_alternative_names = [
-    "www.${local.domain_name}"
-  ]
-
-  tags = {
-    Name = "${local.name}-cf"
-  }
-}
-
-# =================================
-# 3. DNS records for ACM validation
-# =================================
-resource "aws_route53_record" "cert_records" {
-  for_each = {
-    for dvo in aws_acm_certificate.this.domain_validation_options : dvo.domain_name => dvo
-  }
-
-  zone_id = var.hostedzone_id
-  name    = each.value.resource_record_name
-  type    = each.value.resource_record_type
-  records = [each.value.resource_record_value]
-  ttl     = 60
-}
-
-# =============================
-# 4. ACM Certificate Validation
-# =============================
-resource "aws_acm_certificate_validation" "this" {
-  certificate_arn         = aws_acm_certificate.this.arn
-  validation_record_fqdns = [for record in aws_route53_record.cert_records : record.fqdn]
 }
 
 # ========================================

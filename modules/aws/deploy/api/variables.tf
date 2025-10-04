@@ -69,7 +69,7 @@ variable "services" {
     volumes = optional(list(object({
       name = string
       efs_id     = string
-      root_directory     = string
+      access_point_id = string
     })), [])
 
     task = object({

@@ -27,12 +27,12 @@ inputs = {
   environment  = local.env_vars.locals.environment
   vpc_id       = dependency.vpc.outputs.vpc_id
 
-  asg = {
-    jenkins = {
-      instance_type = "t3.micro"
-      min_size      = 1
-      max_size      = 2
-      subnet_ids    = dependency.vpc.outputs.private_subent_ids
-    }
-  }
+  # asg = {
+  #   jenkins = {
+  #     instance_type = "t3.micro"
+  #     min_size      = 1
+  #     max_size      = 2
+  #     subnet_ids    = dependency.vpc.outputs.private_subent_ids
+  #   }
+  # }
 }

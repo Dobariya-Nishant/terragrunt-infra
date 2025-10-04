@@ -23,6 +23,7 @@ dependency "route53" {
   mock_outputs = {
     hostedzone_id  = "mock-hostedzone-id"
     hostedzone_arn = "mock-hostedzone-arn"
+    acm_certificate_arn= "mock-certificat-arn"
   }
 }
 
@@ -40,6 +41,7 @@ inputs = {
   vpc_id     = dependency.vpc.outputs.vpc_id
   subnet_ids = dependency.vpc.outputs.public_subent_ids
 
+  acm_certificate_arn = dependency.route53.outputs.acm_certificate_arn
   hostedzone_id = dependency.route53.outputs.hostedzone_id
 
   target_groups = {
@@ -54,6 +56,7 @@ inputs = {
       port        = 8080
       protocol    = "HTTP"
       target_type = "ip"
+      health_check_path = "/login"
     }
   }
 
@@ -64,7 +67,7 @@ inputs = {
       jenkins_rule = {
         description      = "Jenkins path routing"
         target_group_key = "jenkins"
-        patterns         = ["/jenkins*"]
+        hosts            = ["jenkins.dev.activatree.com"]
       }
     }
   }

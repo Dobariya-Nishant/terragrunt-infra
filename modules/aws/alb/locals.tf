@@ -1,4 +1,4 @@
 locals {
   name        = "${var.name}-alb-${var.environment}"
-  domain_name = var.environment == "prod" ? var.domain_name : "${var.environment}.${var.domain_name}"
+  domain_name = var.environment == "prod" ? "*.${var.domain_name}" : "*.${var.environment}.${var.domain_name}"
 }
